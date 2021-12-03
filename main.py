@@ -23,21 +23,63 @@ def collate_fn(batch):
 
 
 def main():
-    train_data_dir = 'data/ambient/000000_ambient'
-    train_coco = 'data/annotations/000000_coco.json'
+    # Images and annotations for training
+    image_folders = [
+        'data/ambient/000001_ambient',
+        'data/ambient/000000_ambient',
+        'data/ambient/000002_ambient',
+        'data/ambient/000003_ambient',
+        'data/ambient/000004_ambient',
+        'data/ambient/000009_ambient',
+        'data/ambient/000010_ambient',
+        'data/ambient/000011_ambient',
+        'data/ambient/000012_ambient',
+        'data/ambient/000013_ambient',
+        'data/ambient/000014_ambient',
+        'data/ambient/000015_ambient',
+        ]
+    annotation_files = [
+        'data/annotations/000001_coco.json',
+        'data/annotations/000000_coco.json',
+        'data/annotations/000002_coco.json',
+        'data/annotations/000003_coco.json',
+        'data/annotations/000004_coco.json',
+        'data/annotations/000009_coco.json',
+        'data/annotations/000010_coco.json',
+        'data/annotations/000011_coco.json',
+        'data/annotations/000012_coco.json',
+        'data/annotations/000013_coco.json',
+        'data/annotations/000014_coco.json',
+        'data/annotations/000015_coco.json',
+        ]
 
-    my_dataset = CocoDataset(root=train_data_dir, annotation=train_coco, transforms=get_transform())
+    evaluation_images, evaluation_annotations = 'data/annotations/000018_coco.json', 'data/ambient/000018_ambient'
+
+    # Dataset for training
+    datasets = [CocoDataset(root=X, annotation=Y, transforms=get_transform()) for X, Y in zip(image_folders, annotation_files)]
+
+    # Dataset for evaluation
+    eval_dataset = CocoDataset(root=evaluation_images, annotation=evaluation_annotations, transforms=get_transform())
 
     train_batch_size = 1
-    data_loader = torch.utils.data.DataLoader(my_dataset,
+    # List of dataloaders for training
+    data_loaders = [torch.utils.data.DataLoader(dataset,
+                                              batch_size=train_batch_size,
+                                              shuffle=True,
+                                              num_workers=4,
+                                              collate_fn=collate_fn) for dataset in datasets]
+
+    # Dataloader for evaluation
+    eval_data_loader = torch.utils.data.DataLoader(eval_dataset,
                                               batch_size=train_batch_size,
                                               shuffle=True,
                                               num_workers=4,
                                               collate_fn=collate_fn)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    # device = torch.device('cpu')
 
-    num_classes = 8
+    num_classes = 9
     num_epochs = 10
 
     model = get_model_instance_segmentation(num_classes)
@@ -46,26 +88,25 @@ def main():
 
     params = [p for p in model.parameters() if p.requires_grad]
 
-    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+    # optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.5, weight_decay=0.0005)
 
-    len_dataloader = len(data_loader)
+    len_dataloaders = [len(data_loader) for data_loader in data_loaders]
 
-    for epoch in range(num_epochs):
-        model.train()
-
-        i = 0
-        for imgs, annotations in data_loader:
-            i += 1
-            imgs = list(img.to(device) for img in imgs)
-            annotations = [{k: v.to(device) for k, v in t.items()} for t in annotations]
-            loss_dict = model(imgs, annotations)
+    # for epoch in range(num_epochs):
+    model.train()
+    for loader_index, loader in enumerate(data_loaders, 0):
+        for iteration, (images, targets) in enumerate(loader, 0):
+            images = list(img.to(device) for img in images)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            loss_dict = model(images, targets)
             losses = sum(loss for loss in loss_dict.values())
 
             optimizer.zero_grad()
             losses.backward()
             optimizer.step()
 
-            print(f'Iteration: {i}/{len_dataloader}, Loss: {losses}')
+            print(f'Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
 
 
 if __name__ == '__main__':
