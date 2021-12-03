@@ -53,7 +53,7 @@ def main():
         'data/annotations/000015_coco.json',
         ]
 
-    evaluation_images, evaluation_annotations = 'data/annotations/000018_coco.json', 'data/ambient/000018_ambient'
+    evaluation_images, evaluation_annotations = 'data/ambient/000018_ambient', 'data/annotations/000018_coco.json'
 
     # Dataset for training
     datasets = [CocoDataset(root=X, annotation=Y, transforms=get_transform()) for X, Y in zip(image_folders, annotation_files)]
