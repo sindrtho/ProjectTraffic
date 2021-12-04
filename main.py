@@ -25,32 +25,42 @@ def collate_fn(batch):
 def main():
     # Images and annotations for training
     image_folders = [
-        'data/ambient/000001_ambient',
         'data/ambient/000000_ambient',
-        'data/ambient/000002_ambient',
-        'data/ambient/000003_ambient',
-        'data/ambient/000004_ambient',
-        'data/ambient/000009_ambient',
-        'data/ambient/000010_ambient',
-        'data/ambient/000011_ambient',
-        'data/ambient/000012_ambient',
-        'data/ambient/000013_ambient',
-        'data/ambient/000014_ambient',
-        'data/ambient/000015_ambient',
+        # 'data/ambient/000001_ambient',
+        # 'data/ambient/000002_ambient',
+        # 'data/ambient/000003_ambient',
+        # 'data/ambient/000004_ambient',
+        # 'data/ambient/000006_ambient',
+        # 'data/ambient/000007_ambient',
+        # 'data/ambient/000008_ambient',
+        # 'data/ambient/000009_ambient',
+        # 'data/ambient/000010_ambient',
+        # 'data/ambient/000011_ambient',
+        # 'data/ambient/000012_ambient',
+        # 'data/ambient/000013_ambient',
+        # 'data/ambient/000014_ambient',
+        # 'data/ambient/000015_ambient',
+        # 'data/ambient/000016_ambient',
+        # 'data/ambient/000017_ambient',
         ]
     annotation_files = [
-        'data/annotations/000001_coco.json',
         'data/annotations/000000_coco.json',
-        'data/annotations/000002_coco.json',
-        'data/annotations/000003_coco.json',
-        'data/annotations/000004_coco.json',
-        'data/annotations/000009_coco.json',
-        'data/annotations/000010_coco.json',
-        'data/annotations/000011_coco.json',
-        'data/annotations/000012_coco.json',
-        'data/annotations/000013_coco.json',
-        'data/annotations/000014_coco.json',
-        'data/annotations/000015_coco.json',
+        # 'data/annotations/000001_coco.json',
+        # 'data/annotations/000002_coco.json',
+        # 'data/annotations/000003_coco.json',
+        # 'data/annotations/000004_coco.json',
+        # 'data/annotations/000006_coco.json',
+        # 'data/annotations/000007_coco.json',
+        # 'data/annotations/000008_coco.json',
+        # 'data/annotations/000009_coco.json',
+        # 'data/annotations/000010_coco.json',
+        # 'data/annotations/000011_coco.json',
+        # 'data/annotations/000012_coco.json',
+        # 'data/annotations/000013_coco.json',
+        # 'data/annotations/000014_coco.json',
+        # 'data/annotations/000015_coco.json',
+        # 'data/annotations/000016_coco.json',
+        # 'data/annotations/000017_coco.json',
         ]
 
     evaluation_images, evaluation_annotations = 'data/ambient/000018_ambient', 'data/annotations/000018_coco.json'
@@ -108,6 +118,31 @@ def main():
 
             print(f'Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
 
+
+
+    predictions = None
+    model.eval()
+    # losses = sum(loss for loss in loss_dict.values())
+    i = 0
+    for imgs, annotations in eval_data_loader:
+        i += 1
+        imgs = list(img.to(device) for img in imgs)
+        annotations = [{k: v.to(device) for k, v in t.items()} for t in annotations]
+        loss_dict = model(imgs)
+        predictions = loss_dict
+        # predictions.append(loss_dict)
+        # print(loss_dict)
+        # losses = sum(loss for loss in loss_dict.values())
+        #
+        # optimizer.zero_grad()
+        # losses.backward()
+        # optimizer.step()
+
+        # print(f'Iteration: {i}/{len(eval_data_loader)}, Loss: {losses}')
+
+    print(predictions)
+
+    
 
 if __name__ == '__main__':
     main()
