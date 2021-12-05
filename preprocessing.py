@@ -13,6 +13,7 @@ parser.add_argument('--annotations', metavar='A', type=str, default='./data/LiDA
 parser.add_argument('--videos', metavar='V', type=str, default='./data/LiDAR-videos', dest='videos')
 args = parser.parse_args()
 
+
 def get_files_with_regex(path, regex):
     result = []
     for root, _, files in os.walk(path):
@@ -75,6 +76,6 @@ if __name__ == '__main__':
         exit(1)
     coco_files = get_files_with_regex(path=annotation_path, regex='coco\.zip$')
     avi_files = get_files_with_regex(path=video_path, regex='\.avi$')
-    
+
     preprocess_annotations(coco_files)
     preprocess_videos(avi_files)

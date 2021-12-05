@@ -33,8 +33,6 @@ class CocoDataset(Dataset):
         # convert everything into a torch.Tensor
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
 
-        # there is only one class
-        # labels = torch.ones((num_objs), dtype=torch.int64)
         labels = torch.tensor([coco_annotation[i]['category_id'] for i in range(num_objs)])
 
         image_id = torch.tensor([image_id])
