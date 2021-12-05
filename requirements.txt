@@ -7,3 +7,4 @@ opencv-python~=4.5.4.60
 moviepy~=1.0.3
 tqdm~=4.62.3
 pycocotools~=2.0.3
+fiftyone~=0.14.2

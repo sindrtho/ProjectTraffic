@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 
 data/
+data_fiftyone/
+predictions/
 
 # C extensions
 *.so
