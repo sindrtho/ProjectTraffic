@@ -9,7 +9,8 @@ from torchvision.utils import draw_bounding_boxes
 from torchvision.utils import save_image
 from torchvision.transforms.functional import convert_image_dtype
 from movie_utils import export_video_from_frames
-from utils import delete_everything_in_directory
+from utils_our import delete_everything_in_directory
+from engine import evaluate
 
 
 def get_model_instance_segmentation(num_classes):
@@ -30,52 +31,52 @@ def collate_fn(batch):
 
 def main():
     # Config
-    num_epochs = 1
+    num_epochs = 10
     num_classes = 9
     train_batch_size = 1
 
     # Images and annotations for training
     image_folders = [
         'data/ambient/000000_ambient',
-        # 'data/ambient/000001_ambient',
-        # 'data/ambient/000002_ambient',
-        # 'data/ambient/000003_ambient',
-        # 'data/ambient/000004_ambient',
-        # # 'data/ambient/000005_ambient',
-        # 'data/ambient/000006_ambient',
-        # 'data/ambient/000007_ambient',
-        # 'data/ambient/000008_ambient',
-        # 'data/ambient/000009_ambient',
-        # 'data/ambient/000010_ambient',
-        # 'data/ambient/000011_ambient',
-        # 'data/ambient/000012_ambient',
-        # # 'data/ambient/000013_ambient',
-        # # 'data/ambient/000014_ambient',
-        # 'data/ambient/000015_ambient',
-        # 'data/ambient/000016_ambient',
-        # 'data/ambient/000017_ambient',
-        # 'data/ambient/000018_ambient',
+        'data/ambient/000001_ambient',
+        'data/ambient/000002_ambient',
+        'data/ambient/000003_ambient',
+        'data/ambient/000004_ambient',
+        # 'data/ambient/000005_ambient',
+        'data/ambient/000006_ambient',
+        'data/ambient/000007_ambient',
+        'data/ambient/000008_ambient',
+        'data/ambient/000009_ambient',
+        'data/ambient/000010_ambient',
+        'data/ambient/000011_ambient',
+        'data/ambient/000012_ambient',
+        # 'data/ambient/000013_ambient',
+        # 'data/ambient/000014_ambient',
+        'data/ambient/000015_ambient',
+        'data/ambient/000016_ambient',
+        'data/ambient/000017_ambient',
+        'data/ambient/000018_ambient',
     ]
     annotation_files = [
         'data/annotations/000000_coco.json',
-        # 'data/annotations/000001_coco.json',
-        # 'data/annotations/000002_coco.json',
-        # 'data/annotations/000003_coco.json',
-        # 'data/annotations/000004_coco.json',
-        # # 'data/annotations/000005_coco.json',
-        # 'data/annotations/000006_coco.json',
-        # 'data/annotations/000007_coco.json',
-        # 'data/annotations/000008_coco.json',
-        # 'data/annotations/000009_coco.json',
-        # 'data/annotations/000010_coco.json',
-        # 'data/annotations/000011_coco.json',
-        # 'data/annotations/000012_coco.json',
-        # # 'data/annotations/000013_coco.json',
-        # # 'data/annotations/000014_coco.json',
-        # 'data/annotations/000015_coco.json',
-        # 'data/annotations/000016_coco.json',
-        # 'data/annotations/000017_coco.json',
-        # 'data/annotations/000018_coco.json',
+        'data/annotations/000001_coco.json',
+        'data/annotations/000002_coco.json',
+        'data/annotations/000003_coco.json',
+        'data/annotations/000004_coco.json',
+        # 'data/annotations/000005_coco.json',
+        'data/annotations/000006_coco.json',
+        'data/annotations/000007_coco.json',
+        'data/annotations/000008_coco.json',
+        'data/annotations/000009_coco.json',
+        'data/annotations/000010_coco.json',
+        'data/annotations/000011_coco.json',
+        'data/annotations/000012_coco.json',
+        # 'data/annotations/000013_coco.json',
+        # 'data/annotations/000014_coco.json',
+        'data/annotations/000015_coco.json',
+        'data/annotations/000016_coco.json',
+        'data/annotations/000017_coco.json',
+        'data/annotations/000018_coco.json',
     ]
 
     # Images and annotations for evaluation
@@ -117,8 +118,8 @@ def main():
             for iteration, (images, targets) in enumerate(loader, 0):
                 images = list(img.to(device) for img in images)
                 targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-                loss_dict = model(images, targets)
-                losses = sum(loss for loss in loss_dict.values())
+                predictions = model(images, targets)
+                losses = sum(loss for loss in predictions.values())
 
                 optimizer.zero_grad()
                 losses.backward()
@@ -132,7 +133,11 @@ def main():
     delete_everything_in_directory('./predictions')
 
     model.eval()
+    for eval_data in eval_data_loader:
+        evaluate(model, eval_data, device=device)
+
     i = 0
+    torch.set_printoptions(profile="full")
     for loader_index, loader in enumerate(eval_data_loader, 0):
         directory_images = './predictions/' + str(i) + '/'
         os.makedirs(directory_images, exist_ok=True)
@@ -141,10 +146,11 @@ def main():
             image = images[0]
             images = list(img.to(device) for img in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-            loss_dict = model(images)
-            boxes = loss_dict[0]['boxes']
-            scores = loss_dict[0]['scores']
-            labels = loss_dict[0]['labels'][scores > 0.7].tolist()
+            predictions = model(images)
+            # print(predictions)
+            boxes = predictions[0]['boxes']
+            scores = predictions[0]['scores']
+            labels = predictions[0]['labels'][scores > 0.7].tolist()
             colors = []
 
             for j in range(len(labels)):
