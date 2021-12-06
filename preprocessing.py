@@ -64,6 +64,29 @@ def preprocess_videos(video_paths):
                 cv2.imwrite(str(impath), frame[:, :, ::-1])
                 print(f"Writing frame to {impath}")
 
+def make_lidar():
+    channels = ['ambient', 'range', 'intensity']
+
+    videos = ['%.6d_%s' % (i, '%s') for i in range(19)]
+
+    if not os.path.exists('data/videos'):
+        os.mkdir('data/videos')
+
+    for v in videos:
+        dirs = [f'data/{x}/'+v % x for x in channels]
+
+        if not os.path.exists(f'data/videos/{v.split("_")[0]}'):
+            os.mkdir(f'data/videos/{v.split("_")[0]}')
+
+        for path, forlders, files in os.walk(f'{dirs[0]}'):
+            for file in files:
+                images = [cv2.imread(f'{d}/{file}') for d in dirs]
+                new_im = images[0].copy()
+                new_im[:,:,1] = images[1][:,:,0].copy()
+                new_im[:,:,2] = images[2][:,:,0].copy()
+                p = f'data/videos/{v.split("_")[0]}/{file}'
+                print(p)
+                cv2.imwrite(p, new_im)
 
 if __name__ == '__main__':
     annotation_path = args.annotations
@@ -79,3 +102,4 @@ if __name__ == '__main__':
 
     preprocess_annotations(coco_files)
     preprocess_videos(avi_files)
+    make_lidar()

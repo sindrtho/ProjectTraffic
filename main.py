@@ -125,16 +125,19 @@ def main():
                 losses.backward()
                 optimizer.step()
 
-                print(
-                    f'\033[92mEpoch: {epoch + 1}/{num_epochs}\033[00m Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
+                print(f'\033[92mEpoch: {epoch + 1}/{num_epochs}\033[00m Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
+    
+        model.eval()
+        for eval_data in eval_data_loader:
+            evaluate(model, eval_data, device=device)
 
     # Making directory for predictions and deleting everything from last run
     os.makedirs('predictions', exist_ok=True)
     delete_everything_in_directory('./predictions')
 
-    model.eval()
-    for eval_data in eval_data_loader:
-        evaluate(model, eval_data, device=device)
+    # model.eval()
+    # for eval_data in eval_data_loader:
+    #     evaluate(model, eval_data, device=device)
 
     i = 0
     torch.set_printoptions(profile="full")
