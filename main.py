@@ -37,50 +37,50 @@ def main():
 
     # Images and annotations for training
     image_folders = [
-        'data/ambient/000000_ambient',
-        'data/ambient/000001_ambient',
-        'data/ambient/000002_ambient',
-        'data/ambient/000003_ambient',
-        'data/ambient/000004_ambient',
-        # 'data/ambient/000005_ambient',
-        'data/ambient/000006_ambient',
-        'data/ambient/000007_ambient',
-        'data/ambient/000008_ambient',
-        'data/ambient/000009_ambient',
-        'data/ambient/000010_ambient',
-        'data/ambient/000011_ambient',
-        'data/ambient/000012_ambient',
-        # 'data/ambient/000013_ambient',
-        # 'data/ambient/000014_ambient',
-        'data/ambient/000015_ambient',
-        'data/ambient/000016_ambient',
-        'data/ambient/000017_ambient',
-        'data/ambient/000018_ambient',
+        'data/videos/000003',
+        'data/videos/000000',
+        'data/videos/000001',
+        'data/videos/000002',
+        'data/videos/000004',
+        # 'data/videos/000005',
+        # 'data/videos/000006',
+        # 'data/videos/000007',
+        # 'data/videos/000008',
+        # 'data/videos/000009',
+        # 'data/videos/000010',
+        # 'data/videos/000011',
+        # 'data/videos/000012',
+        # # 'data/videos/000013',
+        # # 'data/videos/000014',
+        # 'data/videos/000015',
+        # 'data/videos/000016',
+        # 'data/videos/000017',
+        # 'data/videos/000018',
     ]
     annotation_files = [
+        'data/annotations/000003_coco.json',
         'data/annotations/000000_coco.json',
         'data/annotations/000001_coco.json',
         'data/annotations/000002_coco.json',
-        'data/annotations/000003_coco.json',
         'data/annotations/000004_coco.json',
         # 'data/annotations/000005_coco.json',
-        'data/annotations/000006_coco.json',
-        'data/annotations/000007_coco.json',
-        'data/annotations/000008_coco.json',
-        'data/annotations/000009_coco.json',
-        'data/annotations/000010_coco.json',
-        'data/annotations/000011_coco.json',
-        'data/annotations/000012_coco.json',
-        # 'data/annotations/000013_coco.json',
-        # 'data/annotations/000014_coco.json',
-        'data/annotations/000015_coco.json',
-        'data/annotations/000016_coco.json',
-        'data/annotations/000017_coco.json',
-        'data/annotations/000018_coco.json',
+        # 'data/annotations/000006_coco.json',
+        # 'data/annotations/000007_coco.json',
+        # 'data/annotations/000008_coco.json',
+        # 'data/annotations/000009_coco.json',
+        # 'data/annotations/000010_coco.json',
+        # 'data/annotations/000011_coco.json',
+        # 'data/annotations/000012_coco.json',
+        # # 'data/annotations/000013_coco.json',
+        # # 'data/annotations/000014_coco.json',
+        # 'data/annotations/000015_coco.json',
+        # 'data/annotations/000016_coco.json',
+        # 'data/annotations/000017_coco.json',
+        # 'data/annotations/000018_coco.json',
     ]
 
     # Images and annotations for evaluation
-    evaluation_images = ['data/ambient/000013_ambient', 'data/ambient/000014_ambient']
+    evaluation_images = ['data/videos/000013', 'data/videos/000014']
     evaluation_annotations = ['data/annotations/000013_coco.json', 'data/annotations/000014_coco.json']
 
     # Dataset for training
@@ -100,19 +100,33 @@ def main():
 
     # List of data loaders for evaluation
     eval_data_loader = [torch.utils.data.DataLoader(eval_dataset,
-                                                    batch_size=train_batch_size,
+                                                    batch_size=1,
                                                     shuffle=False,
                                                     num_workers=4,
                                                     collate_fn=collate_fn) for eval_dataset in eval_datasets]
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    
     model = get_model_instance_segmentation(num_classes)
-    model.to(device)
+    start = 0
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.5, weight_decay=0.0005)
     len_dataloaders = [len(data_loader) for data_loader in data_loaders]
+    model.to(device)
 
-    for epoch in range(num_epochs):
+    if os.path.exists('checkpoint.tar'):
+        print("Loading from checkpoint.tar")
+        checkpoint = torch.load('checkpoint.tar')
+
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start = checkpoint['epoch']
+        print(start)
+
+
+    print("Starting training")
+
+    for epoch in range(start, num_epochs):
         model.train()
         for loader_index, loader in enumerate(data_loaders, 0):
             for iteration, (images, targets) in enumerate(loader, 0):
@@ -126,10 +140,11 @@ def main():
                 optimizer.step()
 
                 print(f'\033[92mEpoch: {epoch + 1}/{num_epochs}\033[00m Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
-    
         model.eval()
         for eval_data in eval_data_loader:
             evaluate(model, eval_data, device=device)
+
+        torch.save({'epoch': epoch+1, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(), 'loss': losses}, 'checkpoint.tar')
 
     # Making directory for predictions and deleting everything from last run
     os.makedirs('predictions', exist_ok=True)
@@ -140,6 +155,7 @@ def main():
     #     evaluate(model, eval_data, device=device)
 
     i = 0
+    model.eval()
     torch.set_printoptions(profile="full")
     for loader_index, loader in enumerate(eval_data_loader, 0):
         directory_images = './predictions/' + str(i) + '/'
