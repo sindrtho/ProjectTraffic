@@ -1,5 +1,6 @@
 import os
 import torch
+from torch import nn
 import torchvision
 
 from torch.utils import data
@@ -31,7 +32,7 @@ def collate_fn(batch):
 
 def main():
     # Config
-    num_epochs = 10
+    num_epochs = 100
     num_classes = 9
     train_batch_size = 1
 
@@ -42,20 +43,20 @@ def main():
         'data/videos/000001',
         'data/videos/000002',
         'data/videos/000004',
-        # 'data/videos/000005',
-        # 'data/videos/000006',
-        # 'data/videos/000007',
-        # 'data/videos/000008',
-        # 'data/videos/000009',
-        # 'data/videos/000010',
-        # 'data/videos/000011',
-        # 'data/videos/000012',
-        # # 'data/videos/000013',
-        # # 'data/videos/000014',
-        # 'data/videos/000015',
-        # 'data/videos/000016',
-        # 'data/videos/000017',
-        # 'data/videos/000018',
+        'data/videos/000006',
+        'data/videos/000007',
+        'data/videos/000008',
+        'data/videos/000009',
+        'data/videos/000010',
+        'data/videos/000011',
+        'data/videos/000012',
+        # 'data/videos/000013',
+        # 'data/videos/000014',
+        'data/videos/000015',
+        'data/videos/000016',
+        'data/videos/000017',
+        'data/videos/000018',
+        # 'data/videos/000005'
     ]
     annotation_files = [
         'data/annotations/000003_coco.json',
@@ -63,20 +64,20 @@ def main():
         'data/annotations/000001_coco.json',
         'data/annotations/000002_coco.json',
         'data/annotations/000004_coco.json',
-        # 'data/annotations/000005_coco.json',
-        # 'data/annotations/000006_coco.json',
-        # 'data/annotations/000007_coco.json',
-        # 'data/annotations/000008_coco.json',
-        # 'data/annotations/000009_coco.json',
-        # 'data/annotations/000010_coco.json',
-        # 'data/annotations/000011_coco.json',
-        # 'data/annotations/000012_coco.json',
-        # # 'data/annotations/000013_coco.json',
-        # # 'data/annotations/000014_coco.json',
-        # 'data/annotations/000015_coco.json',
-        # 'data/annotations/000016_coco.json',
-        # 'data/annotations/000017_coco.json',
-        # 'data/annotations/000018_coco.json',
+        'data/annotations/000006_coco.json',
+        'data/annotations/000007_coco.json',
+        'data/annotations/000008_coco.json',
+        'data/annotations/000009_coco.json',
+        'data/annotations/000010_coco.json',
+        'data/annotations/000011_coco.json',
+        'data/annotations/000012_coco.json',
+        # 'data/annotations/000013_coco.json',
+        # 'data/annotations/000014_coco.json',
+        'data/annotations/000015_coco.json',
+        'data/annotations/000016_coco.json',
+        'data/annotations/000017_coco.json',
+        'data/annotations/000018_coco.json',
+        # 'data/annotations/000005_coco.json'
     ]
 
     # Images and annotations for evaluation
@@ -114,6 +115,8 @@ def main():
     len_dataloaders = [len(data_loader) for data_loader in data_loaders]
     model.to(device)
 
+    best = float('inf')
+
     if os.path.exists('checkpoint.tar'):
         print("Loading from checkpoint.tar")
         checkpoint = torch.load('checkpoint.tar')
@@ -121,6 +124,7 @@ def main():
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start = checkpoint['epoch']
+        best = checkpoint['best']
         print(start)
 
 
@@ -140,19 +144,18 @@ def main():
                 optimizer.step()
 
                 print(f'\033[92mEpoch: {epoch + 1}/{num_epochs}\033[00m Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
+
         model.eval()
         for eval_data in eval_data_loader:
             evaluate(model, eval_data, device=device)
 
-        torch.save({'epoch': epoch+1, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(), 'loss': losses}, 'checkpoint.tar')
+        if losses < best:
+            best = losses
+            torch.save({'epoch': epoch+1, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(), 'loss': losses, 'best': best}, 'checkpoint.tar')
 
     # Making directory for predictions and deleting everything from last run
     os.makedirs('predictions', exist_ok=True)
     delete_everything_in_directory('./predictions')
-
-    # model.eval()
-    # for eval_data in eval_data_loader:
-    #     evaluate(model, eval_data, device=device)
 
     i = 0
     model.eval()
@@ -196,10 +199,9 @@ def main():
             save_image(result, directory_images + '/img' + str(image_id) + '.png')
             image_id += 1
 
+        export_video_from_frames(f'./predictions/{i}', filename=f'./predictions/{i}.mp4', fps=30)
+        delete_everything_in_directory(f'./predictions/{i}')
         i += 1
-
-    export_video_from_frames('./predictions/0', filename='./predictions/0.mp4', fps=30)
-    export_video_from_frames('./predictions/1', filename='./predictions/1.mp4', fps=30)
 
 
 if __name__ == '__main__':
