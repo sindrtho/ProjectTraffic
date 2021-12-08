@@ -9,6 +9,7 @@ from torchvision.utils import draw_bounding_boxes
 from torchvision.utils import save_image
 from torchvision.transforms.functional import convert_image_dtype
 from movie_utils import export_video_from_frames
+from movie_utils import export_gif_from_frames
 from utils_our import delete_everything_in_directory
 from engine import evaluate
 
@@ -182,25 +183,25 @@ def main():
                     colors.append('yellow')
                     boxes_labels.append('car ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 2:
-                    colors.append('blue')
+                    colors.append('brown')
                     boxes_labels.append('truck ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 3:
-                    colors.append('orange')
+                    colors.append('white')
                     boxes_labels.append('bus ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 4:
                     colors.append('pink')
                     boxes_labels.append('motorcycle ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 5:
-                    colors.append('red')
+                    colors.append('orange')
                     boxes_labels.append('bicycle ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 6:
                     colors.append('purple')
                     boxes_labels.append('scooter ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 7:
-                    colors.append('white')
+                    colors.append('blue')
                     boxes_labels.append('person ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 8:
-                    colors.append('brown')
+                    colors.append('red')
                     boxes_labels.append('rider ' + "{:.2f}".format(score_labels[j]))
 
             image = convert_image_dtype(image=image, dtype=torch.uint8)
@@ -210,6 +211,7 @@ def main():
             image_id += 1
 
         export_video_from_frames(f'./predictions/{i}', filename=f'./predictions/{i}.mp4', fps=30)
+        export_gif_from_frames(f'./predictions/{i}', filename=f'./predictions/{i}.gif', fps=30)
         # delete_everything_in_directory(f'./predictions/{i}')
         i += 1
 

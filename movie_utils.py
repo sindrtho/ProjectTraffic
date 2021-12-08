@@ -9,6 +9,12 @@ def export_video_from_frames(path, filename, fps=30):
     clips.write_videofile(filename, fps=30)
 
 
+def export_gif_from_frames(path, filename, fps=30):
+    frames = preprocess_frames(path)
+    clips = mpy.ImageSequenceClip(frames, load_images=True, fps=fps)
+    clips.write_gif(filename, fps=30)
+
+
 def preprocess_frames(path):
     files = get_files_in_directory(path)
     files.sort(key=natural_keys)
