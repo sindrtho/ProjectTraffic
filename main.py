@@ -1,6 +1,5 @@
 import os
 import torch
-from torch import nn
 import torchvision
 
 from torch.utils import data
@@ -32,17 +31,18 @@ def collate_fn(batch):
 
 def main():
     # Config
-    num_epochs = 100
+    num_epochs = 1
     num_classes = 9
     train_batch_size = 1
 
     # Images and annotations for training
     image_folders = [
-        'data/videos/000003',
         'data/videos/000000',
         'data/videos/000001',
         'data/videos/000002',
+        'data/videos/000003',
         'data/videos/000004',
+        # 'data/videos/000005',
         'data/videos/000006',
         'data/videos/000007',
         'data/videos/000008',
@@ -56,14 +56,14 @@ def main():
         'data/videos/000016',
         'data/videos/000017',
         'data/videos/000018',
-        # 'data/videos/000005'
     ]
     annotation_files = [
-        'data/annotations/000003_coco.json',
         'data/annotations/000000_coco.json',
         'data/annotations/000001_coco.json',
         'data/annotations/000002_coco.json',
+        'data/annotations/000003_coco.json',
         'data/annotations/000004_coco.json',
+        # 'data/annotations/000005_coco.json'
         'data/annotations/000006_coco.json',
         'data/annotations/000007_coco.json',
         'data/annotations/000008_coco.json',
@@ -77,12 +77,12 @@ def main():
         'data/annotations/000016_coco.json',
         'data/annotations/000017_coco.json',
         'data/annotations/000018_coco.json',
-        # 'data/annotations/000005_coco.json'
     ]
 
     # Images and annotations for evaluation
-    evaluation_images = ['data/videos/000013', 'data/videos/000014']
-    evaluation_annotations = ['data/annotations/000013_coco.json', 'data/annotations/000014_coco.json']
+    evaluation_images = ['data/videos/000005', 'data/videos/000013', 'data/videos/000014']
+    evaluation_annotations = ['data/annotations/000005_coco.json', 'data/annotations/000013_coco.json',
+                              'data/annotations/000014_coco.json']
 
     # Dataset for training
     datasets = [CocoDataset(root=X, annotation=Y, transforms=get_transform()) for X, Y in
@@ -107,7 +107,7 @@ def main():
                                                     collate_fn=collate_fn) for eval_dataset in eval_datasets]
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    
+
     model = get_model_instance_segmentation(num_classes)
     start = 0
 
@@ -117,16 +117,15 @@ def main():
 
     best = float('inf')
 
-    if os.path.exists('checkpoint.tar'):
-        print("Loading from checkpoint.tar")
-        checkpoint = torch.load('checkpoint.tar')
-
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start = checkpoint['epoch']
-        best = checkpoint['best']
-        print(start)
-
+    # if os.path.exists('checkpoint.tar'):
+    #     print("Loading from checkpoint.tar")
+    #     checkpoint = torch.load('checkpoint.tar')
+    #
+    #     model.load_state_dict(checkpoint['model_state_dict'])
+    #     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    #     start = checkpoint['epoch']
+    #     best = checkpoint['best']
+    #     print(start)
 
     print("Starting training")
 
@@ -143,7 +142,8 @@ def main():
                 losses.backward()
                 optimizer.step()
 
-                print(f'\033[92mEpoch: {epoch + 1}/{num_epochs}\033[00m Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
+                print(
+                    f'\033[92mEpoch: {epoch + 1}/{num_epochs}\033[00m Iteration: {sum(len_dataloaders[:loader_index]) + iteration}/{sum(len_dataloaders)}, Loss: {losses}')
 
         model.eval()
         for eval_data in eval_data_loader:
@@ -151,7 +151,8 @@ def main():
 
         if losses < best:
             best = losses
-            torch.save({'epoch': epoch+1, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(), 'loss': losses, 'best': best}, 'checkpoint.tar')
+            torch.save({'epoch': epoch + 1, 'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(), 'loss': losses, 'best': best}, 'checkpoint.tar')
 
     # Making directory for predictions and deleting everything from last run
     os.makedirs('predictions', exist_ok=True)
@@ -174,33 +175,42 @@ def main():
             scores = predictions[0]['scores']
             labels = predictions[0]['labels'][scores > 0.7].tolist()
             colors = []
-
+            boxes_labels = []
+            score_labels = predictions[0]['scores'][scores > 0.7].tolist()
             for j in range(len(labels)):
                 if labels[j] == 1:
-                    colors.append('blue')
-                if labels[j] == 2:
                     colors.append('yellow')
+                    boxes_labels.append('car ' + "{:.2f}".format(score_labels[j]))
+                if labels[j] == 2:
+                    colors.append('blue')
+                    boxes_labels.append('truck ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 3:
                     colors.append('orange')
+                    boxes_labels.append('bus ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 4:
                     colors.append('pink')
+                    boxes_labels.append('motorcycle ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 5:
                     colors.append('red')
+                    boxes_labels.append('bicycle ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 6:
-                    colors.append('green')
-                if labels[j] == 7:
                     colors.append('purple')
+                    boxes_labels.append('scooter ' + "{:.2f}".format(score_labels[j]))
+                if labels[j] == 7:
+                    colors.append('white')
+                    boxes_labels.append('person ' + "{:.2f}".format(score_labels[j]))
                 if labels[j] == 8:
                     colors.append('brown')
+                    boxes_labels.append('rider ' + "{:.2f}".format(score_labels[j]))
 
             image = convert_image_dtype(image=image, dtype=torch.uint8)
-            result = draw_bounding_boxes(image=image, boxes=boxes[scores > 0.7], colors=colors)
+            result = draw_bounding_boxes(image=image, boxes=boxes[scores > 0.7], colors=colors, labels=boxes_labels)
             result = convert_image_dtype(image=result, dtype=torch.float)
             save_image(result, directory_images + '/img' + str(image_id) + '.png')
             image_id += 1
 
         export_video_from_frames(f'./predictions/{i}', filename=f'./predictions/{i}.mp4', fps=30)
-        delete_everything_in_directory(f'./predictions/{i}')
+        # delete_everything_in_directory(f'./predictions/{i}')
         i += 1
 
 
